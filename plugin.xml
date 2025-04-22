@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension
+		point="org.eclipse.linuxtools.tmf.core.analysis">
+		<module
+			id="org.eclipse.tracecompass.l4trace.state.system.module"
+			name="IPC Analysis"
+			analysis_module="org.eclipse.tracecompass.l4trace.ipc.IpcAnalysisModule"
+			automatic="true">
+			<tracetype
+				   class="org.eclipse.tracecompass.tmf.core.trace.TmfTrace">
+			 </tracetype>
+		</module>
+  <output
+        class="org.eclipse.tracecompass.tmf.ui.analysis.TmfAnalysisViewOutput">
+     <analysisId
+           id="org.eclipse.tracecompass.l4trace.state.system.module">
+     </analysisId>
+  </output>
+  <output
+        class="org.eclipse.tracecompass.tmf.ui.analysis.TmfAnalysisViewOutput">
+     <analysisId
+           id="com.example.analysis.mystateanalysis">
+     </analysisId>
+  </output>
+	</extension>
+</plugin>
