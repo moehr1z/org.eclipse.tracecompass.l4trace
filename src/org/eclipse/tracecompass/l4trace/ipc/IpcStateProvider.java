@@ -36,31 +36,51 @@ public class IpcStateProvider extends AbstractTmfStateProvider {
 		final long number = event.getContent().getFieldValue(Long.class, "context._event_count"); //$NON-NLS-1$
 		ITmfStateSystemBuilder ss = Objects.requireNonNull(getStateSystemBuilder());
 
+		final String sender_id = event.getContent().getFieldValue(String.class, "context._dbg_id"); //$NON-NLS-1$
+		final String sender_name = event.getContent().getFieldValue(String.class, "context._name"); //$NON-NLS-1$
+
 		// Initialize state for sender
         if (event.getName().equals("IPC")) { //$NON-NLS-1$
-            final long sender = event.getContent().getFieldValue(Long.class, "context._ctx"); //$NON-NLS-1$
+        	final String receiver_id = event.getContent().getFieldValue(String.class, "dbg_id"); //$NON-NLS-1$
+        	final String receiver_name = event.getContent().getFieldValue(String.class, "rcv_name"); //$NON-NLS-1$
             
-            final IpcSendContext ipcContext = new IpcSendContext(sender, ts);
+            final IpcSendContext ipcContext = new IpcSendContext(receiver_id, receiver_name, ts);		
             eventSndRcvMap.put(number, ipcContext);
 
-            int senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", String.valueOf(sender)); //$NON-NLS-1$
-            ss.modifyAttribute(ts, "Waiting", senderQuark);
+            int senderQuark;
+            if (sender_name == "") {
+				senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_id); //$NON-NLS-1$
+            } else {
+				senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_name); //$NON-NLS-1$
+            }
+			ss.modifyAttribute(ts, "Waiting", senderQuark);
+
+            int receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
+            ss.modifyAttribute(ts, "Processing", receiverQuark);
 
         // Correlate response to send + finish sender state and handle receiver state
         } else if (event.getName().equals("IPCRES")) { //$NON-NLS-1$
-        	final long replier = event.getContent().getFieldValue(Long.class, "context._ctx"); //$NON-NLS-1$
         	final long pairEvent = event.getContent().getFieldValue(Long.class, "pair_event"); //$NON-NLS-1$
         	
         	IpcSendContext ipcContext = eventSndRcvMap.get(pairEvent);
         	if (ipcContext != null) {
-        		long sender = ipcContext.getSendCtx();
-        		// TODO check if it exists
-				int senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", String.valueOf(sender)); //$NON-NLS-1$
+				int senderQuark;
+				if (sender_name == "") {
+					senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_id); //$NON-NLS-1$
+				} else {
+					senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_name); //$NON-NLS-1$
+				}
 				ss.removeAttribute(ts, senderQuark);
 				
-				int replierQuark = ss.getQuarkAbsoluteAndAdd("IPC", String.valueOf(replier)); //$NON-NLS-1$
-				ss.modifyAttribute(ipcContext.getSendTimestamp(), "Processing", replierQuark);
-				ss.removeAttribute(ts, replierQuark);
+				String receiver_id = ipcContext.getRcvId();	
+				String receiver_name = ipcContext.getRcvName();
+				int receiverQuark;
+				if (receiver_name == "") {
+					receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
+				} else {
+					receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_name); //$NON-NLS-1$
+				}
+				ss.removeAttribute(ts, receiverQuark);
 				
 				eventSndRcvMap.remove(pairEvent);
         	} else {
