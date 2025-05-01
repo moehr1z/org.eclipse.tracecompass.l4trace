@@ -18,11 +18,21 @@
            id="org.eclipse.tracecompass.l4trace.state.system.module">
      </analysisId>
   </output>
-  <output
-        class="org.eclipse.tracecompass.tmf.ui.analysis.TmfAnalysisViewOutput">
-     <analysisId
-           id="com.example.analysis.mystateanalysis">
-     </analysisId>
-  </output>
 	</extension>
+ <extension
+       point="org.eclipse.tracecompass.tmf.core.dataprovider">
+    <dataProviderFactory
+          class="org.eclipse.tracecompass.l4trace.ipc.IpcTimeGraphProviderFactory"
+          id="org.eclipse.dataprovider.timegraph.ipc">
+    </dataProviderFactory>
+ </extension>
+ <extension
+       point="org.eclipse.ui.views">
+    <view
+          class="org.eclipse.tracecompass.l4trace.ipc.IpcTimeGraphView"
+          id="org.eclipse.tracecompass.l4trace.timegraph.view"
+          name="IPC View"
+          restorable="true">
+    </view>
+ </extension>
 </plugin>

@@ -1,6 +1,9 @@
 package org.eclipse.tracecompass.l4trace.ipc;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
@@ -13,11 +16,20 @@ import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 public class IpcStateProvider extends AbstractTmfStateProvider {
 	private static final @NonNull String PROVIDER_ID = "org.eclipse.tracecompass.l4trace.ipc.provider"; //$NON-NLS-1$
     private static final int VERSION = 0;
-    // maps send event number to corresponding sender context and timestamp
-    private HashMap<Long, IpcSendContext> eventSndRcvMap = new HashMap<Long, IpcSendContext>();
+    
+    private List<IpcArrow> arrows = new ArrayList<IpcArrow>();
+    private List<IpcTooltip> tooltips = new ArrayList<IpcTooltip>();
     
     public IpcStateProvider(@NonNull ITmfTrace trace) {
         super(trace, PROVIDER_ID);
+    }
+    
+    public List<IpcArrow> getArrows() {
+		return arrows;
+    }
+    
+    public List<IpcTooltip> getTooltips() {
+    	return tooltips;
     }
 
     @Override
@@ -34,57 +46,37 @@ public class IpcStateProvider extends AbstractTmfStateProvider {
     protected void eventHandle(ITmfEvent event) {
 		final long ts = event.getTimestamp().getValue();
 		final long number = event.getContent().getFieldValue(Long.class, "context._event_count"); //$NON-NLS-1$
+		final String operation = event.getContent().getFieldValue(String.class, "type_");
+
 		ITmfStateSystemBuilder ss = Objects.requireNonNull(getStateSystemBuilder());
 
-		final String sender_id = event.getContent().getFieldValue(String.class, "context._dbg_id"); //$NON-NLS-1$
-		final String sender_name = event.getContent().getFieldValue(String.class, "context._name"); //$NON-NLS-1$
+		final String dbg_id = event.getContent().getFieldValue(String.class, "context._dbg_id"); //$NON-NLS-1$
+		int quark = ss.getQuarkAbsoluteAndAdd("IPC", dbg_id); //$NON-NLS-1$
 
-		// Initialize state for sender
         if (event.getName().equals("IPC")) { //$NON-NLS-1$
-        	final String receiver_id = event.getContent().getFieldValue(String.class, "dbg_id"); //$NON-NLS-1$
-        	final String receiver_name = event.getContent().getFieldValue(String.class, "rcv_name"); //$NON-NLS-1$
-            
-            final IpcSendContext ipcContext = new IpcSendContext(receiver_id, receiver_name, ts);		
-            eventSndRcvMap.put(number, ipcContext);
-
-            int senderQuark;
-            if (sender_name == "") {
-				senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_id); //$NON-NLS-1$
-            } else {
-				senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_name); //$NON-NLS-1$
-            }
-			ss.modifyAttribute(ts, "Waiting", senderQuark);
-
-            int receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
-            ss.modifyAttribute(ts, "Processing", receiverQuark);
-
-        // Correlate response to send + finish sender state and handle receiver state
-        } else if (event.getName().equals("IPCRES")) { //$NON-NLS-1$
-        	final long pairEvent = event.getContent().getFieldValue(Long.class, "pair_event"); //$NON-NLS-1$
+			ss.modifyAttribute(ts, operation, quark);
         	
-        	IpcSendContext ipcContext = eventSndRcvMap.get(pairEvent);
-        	if (ipcContext != null) {
-				int senderQuark;
-				if (sender_name == "") {
-					senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_id); //$NON-NLS-1$
-				} else {
-					senderQuark = ss.getQuarkAbsoluteAndAdd("IPC", sender_name); //$NON-NLS-1$
-				}
-				ss.removeAttribute(ts, senderQuark);
-				
-				String receiver_id = ipcContext.getRcvId();	
-				String receiver_name = ipcContext.getRcvName();
-				int receiverQuark;
-				if (receiver_name == "") {
-					receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
-				} else {
-					receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_name); //$NON-NLS-1$
-				}
-				ss.removeAttribute(ts, receiverQuark);
-				
-				eventSndRcvMap.remove(pairEvent);
-        	} else {
-        		System.out.println("Found no matching send for the reply...");
+        	// for operations where we don't send anything, we don't have to draw an arrow
+        	if (!(operation.equals("Recv") | operation.equals("OpenWait") | operation.equals("Wait"))) {
+            	final String receiver_id = event.getContent().getFieldValue(String.class, "dbg_id"); //$NON-NLS-1$
+            	
+    			int receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
+    			
+                IpcArrow corr = new IpcArrow(quark, receiverQuark, ts, 0);
+                arrows.add(corr);
+        	}
+        	
+    		final long tag = event.getContent().getFieldValue(Long.class, "tag"); 
+    		final long label = event.getContent().getFieldValue(Long.class, "label"); 
+    		final String name = event.getContent().getFieldValue(String.class, "context._name"); //$NON-NLS-1$
+
+    		String tooltipText = String.format("Dbg ID: %s \n Name: %s \n tag: %d \n label: %d", dbg_id, name, tag, label);
+    		tooltips.add(new IpcTooltip(quark, tooltipText));
+        } else if (event.getName().equals("IPCRES")) { //$NON-NLS-1$
+    		final long pairEvent = event.getContent().getFieldValue(Long.class, "pair_event");
+    		// Sometimes we get res events from IPC events which happened before we started the stream server
+    		if (pairEvent < number) {
+    			ss.removeAttribute(ts, quark);
         	}
         }
     }
