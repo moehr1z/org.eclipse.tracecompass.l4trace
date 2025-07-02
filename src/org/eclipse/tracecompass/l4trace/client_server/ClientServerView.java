@@ -29,6 +29,14 @@ public class ClientServerView extends TmfView {
         table.setHeaderVisible(true);
         table.setLinesVisible(true);
         viewer.setContentProvider(ArrayContentProvider.getInstance());
+        
+        viewer.setComparator(new ViewerComparator() {
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                Thread t1 = (Thread) e1;
+                Thread t2 = (Thread) e2;
+                return Long.parseLong(t1.getImposedTime()) < Long.parseLong(t2.getImposedTime()) ? 1 : -1;
+            };
+        });
 
         String[] titles = { "Thread ID", "Thread Name", "Total Time", "Self Time", "Client Time", "Client Time Details" };
         int[] widths   = { 50,         100, 			100,          100,         100,           300 };
