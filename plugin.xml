@@ -34,5 +34,11 @@
           name="IPC View"
           restorable="true">
     </view>
+    <view
+          class="org.eclipse.tracecompass.l4trace.client_server.ClientServerView"
+          id="org.eclipse.tracecompass.l4trace.client_server.view"
+          name="Client Server"
+          restorable="true">
+    </view>
  </extension>
 </plugin>
