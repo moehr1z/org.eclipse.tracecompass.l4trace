@@ -34,7 +34,7 @@ public class ClientServerView extends TmfView {
             public int compare(Viewer viewer, Object e1, Object e2) {
                 Thread t1 = (Thread) e1;
                 Thread t2 = (Thread) e2;
-                return Long.parseLong(t1.getImposedTime()) < Long.parseLong(t2.getImposedTime()) ? 1 : -1;
+                return t1.getImposedTime() < t2.getImposedTime() ? 1 : -1;
             };
         });
 
@@ -52,10 +52,10 @@ public class ClientServerView extends TmfView {
                     switch (titles[index]) {
                         case "Thread ID":             return t.getId();
                         case "Thread Name":           return t.getName();
-                        case "Total Time":            return t.getTotalTime();
-                        case "Self Time":             return t.getSelfTime();
-                        case "Client Time":           return t.getImposedTime();
-                        case "Client Time Details":   return t.getImposedTimeDetails();
+                        case "Total Time":            return t.getTotalTimeFormatted();
+                        case "Self Time":             return t.getSelfTimeFormatted();
+                        case "Client Time":           return t.getImposedTimeFormatted();
+                        case "Client Time Details":   return t.getImposedTimeDetailsFormatted();
                         default:                      return "";
                     }
                 }
@@ -70,13 +70,13 @@ public class ClientServerView extends TmfView {
 
     /** Dump all key fields of a thread to stderr with a custom tag. */
     private void dumpThread(Thread t, String tag) {
-        long total = Long.parseLong(t.getTotalTime());
-        long imposed = Long.parseLong(t.getImposedTime());
+        long total = t.getTotalTime();
+        long imposed = t.getImposedTime();
         System.err.printf(
             "[%s] Thread %s → total=%d, imposedSum=%d, start=%d, potImposed=%d, details=%s%n",
             tag, t.getId(), total, imposed,
             t.getPotentialImposedStart(), t.getPotentialImposedTime(),
-            t.getImposedTimeDetails()
+            t.getImposedTimeDetailsFormatted()
         );
     }
 
@@ -96,10 +96,6 @@ public class ClientServerView extends TmfView {
 
                 // 1) Handle dropped events
                 long evNum = Long.parseLong(event.getContent().getFieldValue(String.class, "context._event_count"));
-                // TODO remove
-//                if (evNum > 300) {
-//                	return;
-//                }
                 
                 if (evNum - lastEventNumber > 1) {
                     System.err.println("[RESET] Dropped events: " + (evNum - lastEventNumber));

@@ -46,27 +46,38 @@ public class Thread {
         return name;
     }
 
-    public String getTotalTime() {
-        return totalTime.toString();
+    public Long getTotalTime() {
+        return totalTime;
+    }
+    public String getTotalTimeFormatted() {
+    	return TscUtils.tscToFormattedTime(getTotalTime());
     }
 
-    public String getImposedTime() {
+    public Long getImposedTime() {
         long sum = 0L;
         for (long v : imposedTimeDetails.values()) sum += v;
-        return Long.toString(sum);
+        
+        return sum;
     }
+    public String getImposedTimeFormatted() {
+    	return TscUtils.tscToFormattedTime(getImposedTime());
+    }
+    
 
-    public String getImposedTimeDetails() {
+    public String getImposedTimeDetailsFormatted() {
         if (imposedTimeDetails.isEmpty()) return "{}";
         StringBuilder sb = new StringBuilder("{");
-        imposedTimeDetails.forEach((k,v) -> sb.append(k).append("=").append(v).append(", "));
+        imposedTimeDetails.forEach((k,v) -> sb.append(k).append("=").append(TscUtils.tscToFormattedTime(v)).append(", "));
         sb.setLength(sb.length() - 2);
         return sb.append("}").toString();
     }
 
-    public String getSelfTime() {
-        long self = totalTime - Long.parseLong(getImposedTime());
-        return Long.toString(self);
+    public Long getSelfTime() {
+        long self = totalTime - getImposedTime();
+        return self;
+    }
+    public String getSelfTimeFormatted() {
+    	return TscUtils.tscToFormattedTime(getSelfTime());
     }
 
     public Long getLastSchedTime() {
