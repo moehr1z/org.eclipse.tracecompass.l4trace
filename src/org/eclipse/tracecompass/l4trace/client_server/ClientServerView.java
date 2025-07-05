@@ -132,10 +132,7 @@ public class ClientServerView extends TmfView {
 								th.addPotentialImposedTime(delta);
 								th.commitPotentialImposed(client);
 							}
-						} else if (op.equals("Send") || op.equals("Call") || op.equals("CallIpc")) {
-							th.setPotentialImposed(false);
-							th.clearPotentialImposedTime();
-						}
+						} 
                 	}
                     break;
                 }
