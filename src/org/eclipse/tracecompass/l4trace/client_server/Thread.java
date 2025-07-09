@@ -8,7 +8,7 @@ public class Thread {
     private Long totalTime = 0L;
     private Boolean potentialImposed = false;
     private Long potentialImposedTime = 0L;
-    private final Map<String, Long> imposedTimeDetails = new HashMap<>();
+    private Map<String, Long> imposedTimeDetails = new HashMap<>();
     private Long lastSchedTime = 0L;
     private Long potentialImposedStart = 0L;
     private Boolean isScheduled = false;
@@ -21,9 +21,18 @@ public class Thread {
         debug("NEW", "");
     }
 
+	public void clear() {
+		totalTime = 0L;
+		potentialImposed = false;
+		potentialImposedTime = 0L;
+		imposedTimeDetails = new HashMap<>();
+		lastSchedTime = 0L;
+		potentialImposedStart = 0L;
+		isScheduled = false;
+	}
 
     private boolean isDebug() {
-        return "12".equals(id);
+        return "125".equals(id);
     }
 
     private void debug(String field, String msg) {
@@ -119,7 +128,7 @@ public class Thread {
     }
 
     public void addTotalTime(Long delta) {
-//        debug("addTotalTime", "delta=" + delta + " → " + totalTime + "+" + delta);
+        debug("addTotalTime", "delta=" + delta + " → " + totalTime + "+" + delta);
         totalTime += delta;
     }
 
