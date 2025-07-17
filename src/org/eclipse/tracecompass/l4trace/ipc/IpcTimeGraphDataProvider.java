@@ -245,9 +245,6 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
                 List<@NonNull ITimeGraphState> states = row.getStates();
                 ITimeGraphState timeGraphState = getStateFromInterval(interval, currentEndTime);
                 
-                // TODO build tooltips here
-                System.out.println("METADATA " + timeGraphState.getMetadata().toString());
-                
                 // This call will compare the state with the filter predicate
                 applyFilterAndAddState(states, timeGraphState, row.getEntryID(), predicates, monitor);
             }
@@ -263,9 +260,7 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
         long time = statusInterval.getStartTime();
         long duration = Math.min(currentEndTime, statusInterval.getEndTime() + 1) - time;
         
-        
-        Object o = statusInterval.getValue();
-        
+        Object o = statusInterval.getValue();        
         
         if (!(o instanceof String)) {
             // Add a null state
@@ -314,18 +309,6 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
     @Override
     public @NonNull TmfModelResponse<Map<String, String>> fetchTooltip(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
     	fModule.waitForCompletion();
-    	
-    	//System.out.println("FETCH_PARAMS: "+ fetchParameters.toString());
-    	
-    	/*
-    	List<IpcTooltip> analysisTooltips = fModule.getTooltips();
-    	Map<Long, String> tooltips = new HashMap<Long, String>();
-    	
-    	for (IpcTooltip tooltip: analysisTooltips) {
-    		long id = fIDToDisplayQuark.inverse().computeIfAbsent(tooltip.getQuark(), q -> sfAtomicId.getAndIncrement());
-    		tooltips.put(id, tooltip.getText());
-    	}
-    	*/
     	
         return new TmfModelResponse<>(null, Status.COMPLETED, CommonStatusMessage.COMPLETED);
     }

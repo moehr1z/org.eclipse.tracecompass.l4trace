@@ -21,7 +21,7 @@ public class IpcTimeGraphProviderFactory implements IDataProviderFactory {
     private static final IDataProviderDescriptor DESCRIPTOR = new DataProviderDescriptor.Builder()
             .setId(IpcTimeGraphDataProvider.ID)
             .setName("Ipc time graph data provider") //$NON-NLS-1$
-            .setDescription("This is an example of a time graph data provider using a state system analysis as a source of data") //$NON-NLS-1$
+            .setDescription("Data provider for ipc time graph view") //$NON-NLS-1$
             .setProviderType(ProviderType.TIME_GRAPH)
             .build();
 

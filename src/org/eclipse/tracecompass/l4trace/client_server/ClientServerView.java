@@ -78,15 +78,6 @@ public class ClientServerView extends TmfView {
 		viewer.getControl().setFocus();
 	}
 
-	/** Dump all key fields of a thread to stderr with a custom tag. */
-	private void dumpThread(Thread t, String tag) {
-		long total = t.getTotalTime();
-		long imposed = t.getImposedTime();
-		System.err.printf("[%s] Thread %s → total=%d, imposedSum=%d, start=%d, potImposed=%d, details=%s%n", tag,
-				t.getId(), total, imposed, t.getPotentialImposedStart(), t.getPotentialImposedTime(),
-				t.getImposedTimeDetailsFormatted());
-	}
-
 	@TmfSignalHandler
 	public void onWindowRangeUpdated(TmfWindowRangeUpdatedSignal signal) {
 		rangeStart = signal.getCurrentRange().getStartTime().getValue();
@@ -102,23 +93,6 @@ public class ClientServerView extends TmfView {
 			currentTrace.sendRequest(createRequest());
 		}
 	}
-
-//	@TmfSignalHandler
-//	public void onSelectionRangeUpdated(TmfSelectionRangeUpdatedSignal signal) {
-//		rangeStart = signal.getBeginTime().getValue();
-//		rangeEnd = signal.getEndTime().getValue();
-//		// reset all thread stats
-//		for (Thread t : threads.getThreads()) {
-//			t.clear();
-//		}
-//
-//		lastEventNumber = 0L;
-//		viewer.setInput(threads.getThreads());
-//		// reissue a trace request to repopulate within new range
-//		if (currentTrace != null) {
-//			currentTrace.sendRequest(createRequest());
-//		}
-//	}
 
 	@TmfSignalHandler
 	public void traceSelected(TmfTraceSelectedSignal signal) {
@@ -152,7 +126,6 @@ public class ClientServerView extends TmfView {
 				long evNum = Long.parseLong(event.getContent().getFieldValue(String.class, "context._event_count"));
 
 				if (evNum - lastEventNumber > 1) {
-					System.err.println("[RESET] Dropped events: " + (evNum - lastEventNumber));
 					for (Thread t : threads.getThreads()) {
 						t.clearPotentialImposedTime();
 						t.setPotentialImposed(false);
