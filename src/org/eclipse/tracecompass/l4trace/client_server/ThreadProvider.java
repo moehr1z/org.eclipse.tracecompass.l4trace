@@ -13,7 +13,12 @@ public class ThreadProvider {
 	}
 	
 	public List<Thread> getThreads() {
-		ArrayList<Thread> threadList = new ArrayList<Thread>(this.threads.values());
+		ArrayList<Thread> threadList = new ArrayList<Thread>();
+		for (Thread t: this.threads.values()) {
+			if (t.getImposedTime() > 0) {
+				threadList.add(t);
+			}
+		}
 		return threadList;
 	}
 	

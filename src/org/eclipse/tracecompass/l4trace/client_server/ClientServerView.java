@@ -9,6 +9,7 @@ import org.eclipse.tracecompass.tmf.core.request.*;
 import org.eclipse.tracecompass.tmf.core.signal.*;
 import org.eclipse.tracecompass.tmf.core.timestamp.TmfTimeRange;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
+import org.eclipse.tracecompass.tmf.core.trace.TmfTraceManager;
 import org.eclipse.tracecompass.tmf.ui.views.TmfView;
 
 public class ClientServerView extends TmfView {
@@ -71,6 +72,13 @@ public class ClientServerView extends TmfView {
 				}
 			});
 		}
+		
+	    ITmfTrace trace = TmfTraceManager.getInstance().getActiveTrace();
+	    if (trace != null) {
+	        currentTrace = trace;
+	        viewer.setInput(threads.getThreads());
+	        currentTrace.sendRequest(createRequest());
+	    }
 	}
 
 	@Override
@@ -141,7 +149,6 @@ public class ClientServerView extends TmfView {
 				if (th == null) {
 					th = new Thread(tid);
 					threads.put(tid, th);
-					System.err.println("[NEW THREAD] " + tid);
 				}
 				th.setName(name);
 
@@ -151,7 +158,11 @@ public class ClientServerView extends TmfView {
 						String op = event.getContent().getFieldValue(String.class, "type_");
 						if (op.equals("Reply") || op.equals("ReplyAndWait")) {
 							if (th.getPotentialImposed()) {
-								String client = event.getContent().getFieldValue(String.class, "dbg_id");
+								String client =  event.getContent().getFieldValue(String.class, "dbg_id");
+								String client_name = event.getContent().getFieldValue(String.class, "rcv_name");
+								if (!client_name.isBlank()) {
+									client = client_name;
+								}
 								long delta = ts - th.getPotentialImposedStart();
 								th.addPotentialImposedTime(delta);
 								th.commitPotentialImposed(client);
@@ -179,7 +190,6 @@ public class ClientServerView extends TmfView {
 					if (prev == null) {
 						prev = new Thread(prevId);
 						threads.put(prevId, prev);
-						System.err.println("[NEW prevThread] " + prevId);
 					}
 					prev.setIsScheduled(false);
 					long lastTs = prev.getLastSchedTime();
@@ -196,7 +206,6 @@ public class ClientServerView extends TmfView {
 					if (next == null) {
 						next = new Thread(nextId);
 						threads.put(nextId, next);
-						System.err.println("[NEW nextThread] " + nextId);
 					}
 					next.setIsScheduled(true);
 					next.setLastSchedTime(ts);
