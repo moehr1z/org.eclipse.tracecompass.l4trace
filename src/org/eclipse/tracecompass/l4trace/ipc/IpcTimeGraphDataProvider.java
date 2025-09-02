@@ -21,6 +21,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
+import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.statesystem.core.exceptions.StateSystemDisposedException;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
@@ -178,14 +179,16 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
         // Make an entry for each base quark
         List<ITimeGraphEntryModel> entryList = new ArrayList<>();
         for (Integer quark : ss.getQuarks("IPC", "*")) { //$NON-NLS-1$ //$NON-NLS-2$
-            Long id = fIDToDisplayQuark.inverse().computeIfAbsent(quark, q -> sfAtomicId.getAndIncrement());
+            Long id = (long) quark;
             entryList.add(new TimeGraphEntryModel(id, -1, ss.getAttributeName(quark), ss.getStartTime(), endTime));
         }
 
 
+        List<String> headerList = new ArrayList<>();
+        headerList.add("ID");
         Status status = isComplete ? Status.COMPLETED : Status.RUNNING;
         String msg = isComplete ? CommonStatusMessage.COMPLETED : CommonStatusMessage.RUNNING;
-        return new TmfModelResponse<>(new TmfTreeModel<>(Collections.emptyList(), entryList), status, msg);
+        return new TmfModelResponse<>(new TmfTreeModel<>(headerList, entryList), status, msg);
     }
 	
     @Override
@@ -213,19 +216,7 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
     
     private @Nullable List<ITimeGraphRowModel> getDefaultRowModels(Map<String, Object> fetchParameters, ITmfStateSystem ss, @Nullable IProgressMonitor monitor) throws IndexOutOfBoundsException, TimeRangeException, StateSystemDisposedException {
         Map<Integer, ITimeGraphRowModel> quarkToRow = new HashMap<>();
-        // Prepare the quarks to display
-        Collection<Long> selectedItems = DataProviderParameterUtils.extractSelectedItems(fetchParameters);
-        if (selectedItems == null) {
-            // No selected items, take them all
-            selectedItems = fIDToDisplayQuark.keySet();
-        }
-        for (Long id : selectedItems) {
-            Integer quark = fIDToDisplayQuark.get(id);
-            if (quark != null) {
-                quarkToRow.put(quark, new TimeGraphRowModel(id, new ArrayList<>()));
-            }
-        }
-
+        
         // This regex map automatically filters or highlights the entry
         // according to the global filter entered by the user
         Map<@NonNull Integer, @NonNull Predicate<@NonNull Multimap<@NonNull String, @NonNull Object>>> predicates = new HashMap<>();
@@ -234,9 +225,21 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
             predicates.putAll(computeRegexPredicate(regexesMap));
         }
 
+        // Prepare the quarks to display
+        Collection<Long> selectedItems = DataProviderParameterUtils.extractSelectedItems(fetchParameters);
+        for (Integer quark : ss.getQuarks("IPC", "*")) {
+				long id =  (long) quark;
+
+                if (selectedItems == null || selectedItems.isEmpty() || selectedItems.contains(id)) {
+                    quarkToRow.put(quark, new TimeGraphRowModel(id, new ArrayList<>()));
+                }
+        }
+
+
         // Query the state system to fill the states
         long currentEndTime = ss.getCurrentEndTime();
         for (ITmfStateInterval interval : ss.query2D(quarkToRow.keySet(), getTimes(ss, DataProviderParameterUtils.extractTimeRequested(fetchParameters)))) {
+        	
             if (monitor != null && monitor.isCanceled()) {
                 return Collections.emptyList();
             }
@@ -244,8 +247,6 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
             if (row != null) {
                 List<@NonNull ITimeGraphState> states = row.getStates();
                 ITimeGraphState timeGraphState = getStateFromInterval(interval, currentEndTime);
-                
-                // This call will compare the state with the filter predicate
                 applyFilterAndAddState(states, timeGraphState, row.getEntryID(), predicates, monitor);
             }
         }
@@ -268,7 +269,7 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
         }
         
         String stateName = o.toString();
-        String styleName = "style" + stateName; //$NON-NLS-1$ // TODO
+        String styleName = "style" + stateName; //$NON-NLS-1$ 
         
         return new TimeGraphState(time, duration, String.valueOf(o), STYLE_MAP.get(styleName));
     }
@@ -286,17 +287,17 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
         return times;
     }
 
+    // FIX: currently you loose the arrows when reopening trace compass. A proper fix would be to have the arrows as quarks in the state system and draw them from there
     @Override
     public @NonNull TmfModelResponse<List<ITimeGraphArrow>> fetchArrows(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
     	fModule.waitForCompletion();
         
         List<IpcArrow> analysisArrows = fModule.getArrows();
         List<ITimeGraphArrow> arrows = new ArrayList<>(analysisArrows.size());
-                
-        
+
         for (IpcArrow arr : analysisArrows) {
-        	long srcId = fIDToDisplayQuark.inverse().computeIfAbsent(arr.getSrcId(), q -> sfAtomicId.getAndIncrement());
-            long dstId = fIDToDisplayQuark.inverse().computeIfAbsent(arr.getDstId(), q -> sfAtomicId.getAndIncrement());
+        	long srcId = (long) arr.getSrcId();
+            long dstId = (long) arr.getDstId();
         	long ts = arr.getTs();
         	long dur = arr.getDur();
         	
@@ -305,6 +306,7 @@ implements ITimeGraphDataProvider<ITimeGraphEntryModel>, IOutputStyleProvider {
     	
         return new TmfModelResponse<>(arrows, Status.COMPLETED, CommonStatusMessage.COMPLETED);
     }
+
 
     @Override
     public @NonNull TmfModelResponse<Map<String, String>> fetchTooltip(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {

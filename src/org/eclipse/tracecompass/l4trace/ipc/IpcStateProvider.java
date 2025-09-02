@@ -26,7 +26,7 @@ public class IpcStateProvider extends AbstractTmfStateProvider {
 		return arrows;
     }
     
-    // TODO remove
+    // TODO: remove
     public List<IpcTooltip> getTooltips() {
     	return tooltips;
     }
@@ -50,7 +50,13 @@ public class IpcStateProvider extends AbstractTmfStateProvider {
 		ITmfStateSystemBuilder ss = Objects.requireNonNull(getStateSystemBuilder());
 
 		final String dbg_id = event.getContent().getFieldValue(String.class, "context._dbg_id"); //$NON-NLS-1$
-		int quark = ss.getQuarkAbsoluteAndAdd("IPC", dbg_id); //$NON-NLS-1$
+		final String name = event.getContent().getFieldValue(String.class, "context._name"); //$NON-NLS-1$
+		int quark = 0;
+		if (name.isBlank()) {
+			quark = ss.getQuarkAbsoluteAndAdd("IPC", dbg_id); //$NON-NLS-1$
+		} else {
+			quark = ss.getQuarkAbsoluteAndAdd("IPC", name); //$NON-NLS-1$
+		}
 		
         if (event.getName().equals("IPC")) { //$NON-NLS-1$
 			ss.modifyAttribute(ts, operation, quark);
@@ -58,9 +64,24 @@ public class IpcStateProvider extends AbstractTmfStateProvider {
         	// for operations where we don't send anything, we don't have to draw an arrow
         	if (!(operation.equals("Recv") | operation.equals("OpenWait") | operation.equals("Wait"))) {
             	final String receiver_id = event.getContent().getFieldValue(String.class, "dbg_id"); //$NON-NLS-1$
+				final String receiver_name = event.getContent().getFieldValue(String.class, "rcv_name"); //$NON-NLS-1$
             	
-    			int receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", receiver_id); //$NON-NLS-1$
-    			
+    			int receiverQuark = 0;
+    			String quarkString = "";
+				if (receiver_name.isBlank()) {
+					quarkString += receiver_id;
+				} else {
+					quarkString += receiver_name;
+				}
+
+				final String dst_thread_name = event.getContent().getFieldValue(String.class, "dst_thread_name"); //$NON-NLS-1$
+				if (!dst_thread_name.isBlank()) {
+					quarkString += " (" + dst_thread_name + ")";
+				} 
+				
+
+				receiverQuark = ss.getQuarkAbsoluteAndAdd("IPC", quarkString); //$NON-NLS-1$
+				
                 IpcArrow corr = new IpcArrow(quark, receiverQuark, ts, 0);
                 arrows.add(corr);
         	}
